@@ -1,16 +1,15 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize OneSignal
+  // 🔹 Initialize OneSignal
   OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
-  OneSignal.initialize("306d457d-6f91-47bf-9c89-2d22c831fd57");
-  OneSignal.Notifications.requestPermission(true);
+  OneSignal.initialize("306d457d-6f91-47bf-9c89-2d22c831fd57"); // Your App ID
+  OneSignal.Notifications.requestPermission(true); // Ask for push permission
 
   runApp(const MyApp());
 }
@@ -33,17 +32,35 @@ class NotificationSenderScreen extends StatefulWidget {
   const NotificationSenderScreen({super.key});
 
   @override
-  State<NotificationSenderScreen> createState() =>
-      _NotificationSenderScreenState();
+  State<NotificationSenderScreen> createState() => _NotificationSenderScreenState();
 }
 
 class _NotificationSenderScreenState extends State<NotificationSenderScreen> {
   final _titleController = TextEditingController();
   final _bodyController = TextEditingController();
 
-  final String restApiKey =
-      'os_v2_app_gbwuk7lpsfd37hejfurmqmp5k7onnvkkbmju244axaahd3jpxqlwxskmhxdlo7rfzs2tg6ougluc77vcxq7wcpevklsmdaolrprpwna';
+  final String restApiKey = 'os_v2_app_gbwuk7lpsfd37hejfurmqmp5k7onnvkkbmju244axaahd3jpxqlwxskmhxdlo7rfzs2tg6ougluc77vcxq7wcpevklsmdaolrprpwna';
   final String appId = '306d457d-6f91-47bf-9c89-2d22c831fd57';
+
+  @override
+  void initState() {
+    super.initState();
+    _printOneSignalInfo();
+  }
+
+  void _printOneSignalInfo() async {
+    final userId = await OneSignal.User.pushSubscription.id!;
+    final deviceState = await OneSignal.User.pushSubscription.optIn();
+
+    print('📱 OneSignal User ID: $userId');
+    print('🔔 Subscribed: ${deviceState?.isSubscribed}');
+
+    if (deviceState?.isSubscribed == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❗ Please allow notifications in system settings.')),
+      );
+    }
+  }
 
   Future<void> sendNotification(String title, String body) async {
     var url = Uri.parse('https://onesignal.com/api/v1/notifications');
@@ -54,7 +71,7 @@ class _NotificationSenderScreenState extends State<NotificationSenderScreen> {
 
     var payload = jsonEncode({
       'app_id': appId,
-      'included_segments': ['All'],
+      'included_segments': ['Total Subscriptions'],
       'headings': {'en': title},
       'contents': {'en': body},
     });
@@ -66,14 +83,14 @@ class _NotificationSenderScreenState extends State<NotificationSenderScreen> {
           const SnackBar(content: Text('✅ Notification sent successfully!')),
         );
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('❌ Failed: ${response.body}')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Failed: ${response.body}')),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Error: $e')),
+      );
     }
   }
 
@@ -85,7 +102,7 @@ class _NotificationSenderScreenState extends State<NotificationSenderScreen> {
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            Image.asset('assets/images/appstore.png', height: 100),
+            Image.asset('assets/images/app.png', height: 100),
             const SizedBox(height: 20),
             TextField(
               controller: _titleController,
@@ -112,9 +129,7 @@ class _NotificationSenderScreenState extends State<NotificationSenderScreen> {
                   sendNotification(title, body);
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('⚠️ Please fill in both fields.'),
-                    ),
+                    const SnackBar(content: Text('⚠️ Please fill in both fields.')),
                   );
                 }
               },
